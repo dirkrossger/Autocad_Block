@@ -19,6 +19,7 @@ namespace _AcSpeedy_Block_Create
 {
     public class Block
     {
+        #region Create Block
         public void DefineBlock(string blkName)
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
@@ -151,6 +152,48 @@ namespace _AcSpeedy_Block_Create
             }
             return ents;
         }
+        #endregion
 
+        public void CreateBlockFrom()
+        {
+            Document doc = Application.DocumentManager.MdiActiveDocument;
+            Database db = doc.Database;
+
+            using (Transaction tr = db.TransactionManager.StartOpenCloseTransaction())
+            {
+                DBObjectCollection objs = new DBObjectCollection();
+                BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+
+                //EntProxy.Explode(objs);
+
+                string blkName = "Getname";
+
+                if (bt.Has(blkName) == false)
+                {
+                    BlockTableRecord btr = new BlockTableRecord();
+                    btr.Name = blkName;
+
+                    bt.UpgradeOpen();
+                    ObjectId btrId = bt.Add(btr);
+                    tr.AddNewlyCreatedDBObject(btr, true);
+
+                    foreach (DBObject obj in objs)
+                    {
+                        Entity ent = (Entity)obj;
+                        btr.AppendEntity(ent);
+                        tr.AddNewlyCreatedDBObject(ent, true);
+                    }
+
+                    BlockTableRecord ms = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+
+                    BlockReference br =
+                      new BlockReference(Point3d.Origin, btrId);
+
+                    ms.AppendEntity(br);
+                    tr.AddNewlyCreatedDBObject(br, true);
+                }
+                tr.Commit();
+            }
+        }
     }
 }
